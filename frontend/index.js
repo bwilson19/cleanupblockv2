@@ -8,7 +8,7 @@ import {
   ConfirmationDialog,
   Box,
   Icon,
-  RecordCardList,
+  useRecordById, RecordCard
 } from '@airtable/blocks/ui';
 
 import React, { useState, useEffect } from 'react';
@@ -20,7 +20,7 @@ function CleanUpBlock() {
   const [storedTitles, setStoredTitles] = useState([]);
   const [storedPublishedRecords, setStoredPublishedRecords] = useState([]);
 
-  //   global variables
+  // global variables
 
   const base = useBase();
   const editorialTable = base.getTableByName('Editorial');
@@ -33,11 +33,11 @@ function CleanUpBlock() {
 
   useEffect(() => {
     setStoredPublishedRecords(publishedRecords);
-    findTitles(allRecords);
+    findCellValues(allRecords);
   }, []);
 
   // find and store duplicate article records in state
-  function findTitles() {
+  function findCellValues() {
     let titleArray = [];
     for (let i = 0; i < allRecords.length; i++) {
       let record = {
@@ -50,7 +50,6 @@ function CleanUpBlock() {
   }
 
   function findDuplicates(titles) {
-    console.log(titles);
     let slicedTitles = titles.slice().sort();
     let sortedTitles = slicedTitles.sort((a, b) =>
       a.title > b.title ? 1 : -1
@@ -64,6 +63,14 @@ function CleanUpBlock() {
     setDuplicates(results);
     console.log(results);
   }
+
+   function RecordListItem({ table, recordId }) {
+     const record = useRecordById(table, recordId);
+     console.log(record)
+     return <RecordCard record={record} />;
+   }
+
+  //   delete dupes
 
   // archive published records
   function archivePublished() {
@@ -213,7 +220,19 @@ function CleanUpBlock() {
             </div>
           )}
         </Box>
-
+        {duplicates && (
+          <ul>
+            {duplicates.map((recordId) => {
+              return (
+                <RecordListItem
+                  key={recordId}
+                  recordId={recordId}
+                  table={editorialTable}
+                />
+              );
+            })}
+          </ul>
+        )}
         <Box
           display="flex"
           flexDirection="row"
