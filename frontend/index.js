@@ -26,10 +26,7 @@ function CleanUpBlock() {
   const [oldArchived, setOldArchived] = useState(false);
   const [archiveDeleting, setArchiveDeleting] = useState(false);
   const [recordsMoved, setRecordsMoved] = useState(false);
-  const [processComplete, setProcessComplete] = useState(false);
   const [storedTitles, setStoredTitles] = useState([]);
-  const [storedPublishedRecords, setStoredPublishedRecords] = useState([]);
-  const [storedOldRecords, setStoredOldRecords] = useState([]);
 
   // global variables
 
@@ -44,13 +41,11 @@ function CleanUpBlock() {
   const publishedRecords = useRecords(publishedView);
   const oldRecords = useRecords(oldView);
 
-  //   store records in state upon page load
+  //   find cell values upon page load
 
   useEffect(() => {
-    setStoredPublishedRecords(publishedRecords);
-    setStoredOldRecords(oldRecords);
     findCellValues(allRecords);
-    console.log(archiveRecords);
+    // eslint-disable-next-line
   }, []);
 
   // find titles, compare records, and store duplicate article records in state
@@ -120,13 +115,12 @@ function CleanUpBlock() {
   // select and move published pieces to archive
 
   function archivePublished() {
-    
     setPublishedArchiving(true);
     createRecords(publishedRecords);
     if (recordsMoved === true) {
       deleteRecords(publishedRecords, editorialTable);
     }
-    if (processComplete === true) {
+    if (publishedRecords.length === 0) {
       setPublishedArchiving(false);
       setPublishedArchived(true);
     }
@@ -140,7 +134,7 @@ function CleanUpBlock() {
     if (recordsMoved === true) {
       deleteRecords(oldRecords, editorialTable);
     }
-    if (processComplete === true) {
+    if (oldRecords.length === 0) {
       setOldArchiving(false);
       setOldArchived(true);
     }
