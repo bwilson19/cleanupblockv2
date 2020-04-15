@@ -8,7 +8,9 @@ import {
   ConfirmationDialog,
   Box,
   Icon,
-  useRecordById, RecordCard
+  useRecordById,
+  RecordCard,
+  Loader,
 } from '@airtable/blocks/ui';
 
 import React, { useState, useEffect } from 'react';
@@ -17,12 +19,18 @@ function CleanUpBlock() {
   // states
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [duplicates, setDuplicates] = useState(null);
+  const [duplicatesRemoved, setDuplicatesRemoved] = useState(false);
+  const [publishedArchiving, setPublishedArchiving] = useState(false);
+  const [publishedArchived, setPublishedArchived] = useState(false);
+  const [recordsMoved, setRecordsMoved] = useState(false);
+  const [processComplete, setProcessComplete] = useState(false);
   const [storedTitles, setStoredTitles] = useState([]);
   const [storedPublishedRecords, setStoredPublishedRecords] = useState([]);
 
   // global variables
 
   const base = useBase();
+  const BATCH_SIZE = 50;
   const editorialTable = base.getTableByName('Editorial');
   const archiveTable = base.getTableByName('Archive');
   const publishedView = editorialTable.getViewByName('Published Pieces');
@@ -64,39 +72,59 @@ function CleanUpBlock() {
     console.log(results);
   }
 
-   function RecordListItem({ table, recordId }) {
-     const record = useRecordById(table, recordId);
-     console.log(record)
-     return <RecordCard record={record} />;
-   }
-
-  //   delete dupes
-
-  // archive published records
-  function archivePublished() {
-    setIsDialogOpen(false);
-    console.log(storedPublishedRecords);
-    // deletePublishedRecords(storedPublishedRecords);
+  function RecordListItem({ table, recordId }) {
+    const record = useRecordById(table, recordId);
+    return <RecordCard record={record} />;
   }
 
-  //   delete published records after moving to archive
+  //   delete records
 
-  const BATCH_SIZE = 50;
-  async function deletePublishedRecords(records) {
+  async function deleteRecords(records) {
+    setDuplicates(null);
     let i = 0;
     while (i < records.length) {
       const recordBatch = records.slice(i, i + BATCH_SIZE);
       await editorialTable.deleteRecordsAsync(recordBatch);
       i += BATCH_SIZE;
     }
+    setProcessComplete(true);
+  }
+
+  //   create records in archive
+
+  async function createRecords(records) {
+    let i = 0;
+    while (i < records.length) {
+      const recordBatch = records.slice(i, i + BATCH_SIZE);
+      for (let record of recordBatch) {
+        await archiveTable.createRecordsAsync([
+          {
+            fields: {
+              Title: record.getCellValue('Title'),
+              Date: record.getCellValue('Date'),
+            },
+          },
+        ]);
+        i += BATCH_SIZE;
+      }
+    }
+    setRecordsMoved(true);
   }
 
   // select and move published pieces to archive
 
   function archivePublished() {
     setIsDialogOpen(false);
-    console.log(storedPublishedRecords);
-    // deletePublishedRecords(storedPublishedRecords);
+    setPublishedArchiving(true);
+    createRecords(storedPublishedRecords);
+    if (recordsMoved === true) {
+      deleteRecords(storedPublishedRecords);
+    }
+    if (processComplete === true) {
+      setPublishedArchiving(false);
+      setPublishedArchived(true);
+      setProcessComplete(false)
+    }
   }
 
   // totals base records and picks progress bar color
@@ -184,16 +212,29 @@ function CleanUpBlock() {
           overflow="hidden"
         >
           <div>
-            <h3>Find & Remove Duplicates</h3>
+            <h3>Find, Edit, & Remove Duplicates</h3>
             <p>
-              This option will search through each table to make sure that there
-              are no duplicate records taking up any space.
+              This option will search through the Editorial table to make sure
+              that there are no duplicate records taking up any space.
             </p>
           </div>
-          {!duplicates && (
+          {!duplicates && !duplicatesRemoved && (
             <Button onClick={() => findDuplicates(storedTitles)}>
               Find Duplicates
             </Button>
+          )}
+          {duplicatesRemoved && (
+            <>
+              <Icon name="check" size={16} />
+              &nbsp;
+              <p
+                style={{
+                  color: 'green',
+                }}
+              >
+                Completed
+              </p>
+            </>
           )}
           {duplicates && (
             <div
@@ -214,7 +255,11 @@ function CleanUpBlock() {
                   {duplicates.length} Duplicates Found
                 </span>
               </p>
-              <Button onClick={() => console.log(duplicates)}>
+              <Button
+                onClick={() =>
+                  deleteRecords(duplicates) && setDuplicatesRemoved(true)
+                }
+              >
                 Remove Duplicates
               </Button>
             </div>
@@ -251,7 +296,23 @@ function CleanUpBlock() {
               &quot;Archive&quot; table.
             </p>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
+          {!publishedArchived && !publishedArchiving && (
+            <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
+          )}
+          {publishedArchiving && !publishedArchived && <Loader scale={0.3} />}
+          {publishedArchived && !publishedArchiving && (
+            <>
+              <Icon name="check" size={16} />
+              &nbsp;
+              <p
+                style={{
+                  color: 'green',
+                }}
+              >
+                Completed
+              </p>
+            </>
+          )}
           {isDialogOpen && (
             <ConfirmationDialog
               title="Are you sure?"
