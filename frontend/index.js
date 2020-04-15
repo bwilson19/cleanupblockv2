@@ -97,7 +97,6 @@ function CleanUpBlock() {
       await table.deleteRecordsAsync(recordBatch);
       i += BATCH_SIZE;
     }
-    setProcessComplete(true);
     setArchiveDeleting(false);
   }
 
@@ -121,10 +120,11 @@ function CleanUpBlock() {
   // select and move published pieces to archive
 
   function archivePublished() {
+    
     setPublishedArchiving(true);
-    createRecords(storedPublishedRecords);
+    createRecords(publishedRecords);
     if (recordsMoved === true) {
-      deleteRecords(storedPublishedRecords, editorialTable);
+      deleteRecords(publishedRecords, editorialTable);
     }
     if (processComplete === true) {
       setPublishedArchiving(false);
@@ -136,9 +136,9 @@ function CleanUpBlock() {
 
   function archiveOld() {
     setOldArchiving(true);
-    createRecords(storedOldRecords);
+    createRecords(oldRecords);
     if (recordsMoved === true) {
-      deleteRecords(storedOldRecords, editorialTable);
+      deleteRecords(oldRecords, editorialTable);
     }
     if (processComplete === true) {
       setOldArchiving(false);
@@ -284,7 +284,8 @@ function CleanUpBlock() {
               </p>
               <Button
                 onClick={() =>
-                  deleteRecords(duplicates, editorialTable) && setDuplicatesRemoved(true)
+                  deleteRecords(duplicates, editorialTable) &&
+                  setDuplicatesRemoved(true)
                 }
               >
                 Remove Duplicates
@@ -409,7 +410,7 @@ function CleanUpBlock() {
               </span>
             </p>
           </div>
-          {archiveRecords.length > 0 && (
+          {archiveRecords.length > 0 && !archiveDeleting && (
             <Button onClick={() => setIsDialogOpen(true)}>
               Delete Archive
             </Button>
