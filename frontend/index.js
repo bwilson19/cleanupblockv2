@@ -129,7 +129,6 @@ function CleanUpBlock() {
     if (processComplete === true) {
       setPublishedArchiving(false);
       setPublishedArchived(true);
-      setProcessComplete(false);
     }
   }
 
@@ -147,7 +146,7 @@ function CleanUpBlock() {
     }
   }
 
-  //    delete all records from archive
+  //  delete all records from archive
 
   function deleteArchive() {
     setIsDialogOpen(false);
@@ -177,7 +176,7 @@ function CleanUpBlock() {
     baseColor = '#ff3333';
   }
 
-  // maps each table and their progress bars
+  // calculates limits for each table and their progress bars
 
   const tables = base.tables.map((table) => {
     // eslint-disable-next-line
@@ -394,12 +393,14 @@ function CleanUpBlock() {
             <p>
               Removes all records from the &quot;Archive.&quot;&nbsp;
               <span style={{ fontWeight: 'bold' }}>
-                (Please note: This action cannot be undone)
+                <p>(Please note: This action cannot be undone)</p>
               </span>
             </p>
           </div>
           {archiveRecords.length > 0 && (
-            <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
+              Delete Archive
+            </Button>
           )}
           {archiveDeleting && <Loader scale={0.3} />}
           {archiveRecords.length === 0 && !archiveDeleting && (
@@ -410,7 +411,7 @@ function CleanUpBlock() {
                   color: 'green',
                 }}
               >
-                Completed
+                Completed (0 Records)
               </p>
             </>
           )}
