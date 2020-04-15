@@ -25,7 +25,6 @@ function CleanUpBlock() {
   const [oldArchiving, setOldArchiving] = useState(false);
   const [oldArchived, setOldArchived] = useState(false);
   const [archiveDeleting, setArchiveDeleting] = useState(false);
-  const [archiveDeleted, setArchiveDeleted] = useState(false);
   const [recordsMoved, setRecordsMoved] = useState(false);
   const [processComplete, setProcessComplete] = useState(false);
   const [storedTitles, setStoredTitles] = useState([]);
@@ -51,7 +50,7 @@ function CleanUpBlock() {
     setStoredPublishedRecords(publishedRecords);
     setStoredOldRecords(oldRecords);
     findCellValues(allRecords);
-    console.log(archiveRecords)
+    console.log(archiveRecords);
   }, []);
 
   // find titles, compare records, and store duplicate article records in state
@@ -90,15 +89,16 @@ function CleanUpBlock() {
 
   //   delete records
 
-  async function deleteRecords(records) {
+  async function deleteRecords(records, table) {
     setDuplicates(null);
     let i = 0;
-    while (i < 50) {
+    while (i < records.length) {
       const recordBatch = records.slice(i, i + BATCH_SIZE);
-      await editorialTable.deleteRecordsAsync(recordBatch);
+      await table.deleteRecordsAsync(recordBatch);
       i += BATCH_SIZE;
     }
     setProcessComplete(true);
+    setArchiveDeleting(false);
   }
 
   //   create records in archive
@@ -124,7 +124,7 @@ function CleanUpBlock() {
     setPublishedArchiving(true);
     createRecords(storedPublishedRecords);
     if (recordsMoved === true) {
-      deleteRecords(storedPublishedRecords);
+      deleteRecords(storedPublishedRecords, editorialTable);
     }
     if (processComplete === true) {
       setPublishedArchiving(false);
@@ -139,7 +139,7 @@ function CleanUpBlock() {
     setOldArchiving(true);
     createRecords(storedOldRecords);
     if (recordsMoved === true) {
-      deleteRecords(storedOldRecords);
+      deleteRecords(storedOldRecords, editorialTable);
     }
     if (processComplete === true) {
       setOldArchiving(false);
@@ -150,12 +150,9 @@ function CleanUpBlock() {
   //    delete all records from archive
 
   function deleteArchive() {
+    setIsDialogOpen(false);
     setArchiveDeleting(true);
-    deleteRecords(archiveTable);
-    if (processComplete === true) {
-      setArchiveDeleting(false);
-      setArchiveDeleted(true);
-    }
+    deleteRecords(archiveRecords, archiveTable);
   }
 
   // totals base records and picks progress bar color
@@ -401,14 +398,13 @@ function CleanUpBlock() {
               </span>
             </p>
           </div>
-          {!archiveDeleted && !archiveDeleting && (
+          {archiveRecords.length > 0 && (
             <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
           )}
-          {archiveDeleting && !archiveDeleted && <Loader scale={0.3} />}
-          {archiveDeleted && !archiveDeleting && (
+          {archiveDeleting && <Loader scale={0.3} />}
+          {archiveRecords.length === 0 && !archiveDeleting && (
             <>
               <Icon name="check" size={16} />
-              &nbsp;
               <p
                 style={{
                   color: 'green',
