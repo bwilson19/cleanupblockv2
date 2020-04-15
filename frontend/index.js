@@ -284,7 +284,7 @@ function CleanUpBlock() {
               </p>
               <Button
                 onClick={() =>
-                  deleteRecords(duplicates) && setDuplicatesRemoved(true)
+                  deleteRecords(duplicates, editorialTable) && setDuplicatesRemoved(true)
                 }
               >
                 Remove Duplicates
@@ -328,7 +328,13 @@ function CleanUpBlock() {
           )}
           {publishedArchiving && !publishedArchived && <Loader scale={0.3} />}
           {publishedArchived && !publishedArchiving && (
-            <>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
               <Icon name="check" size={16} />
               &nbsp;
               <p
@@ -338,7 +344,7 @@ function CleanUpBlock() {
               >
                 Completed
               </p>
-            </>
+            </div>
           )}
         </Box>
         <Box
@@ -364,7 +370,13 @@ function CleanUpBlock() {
           )}
           {oldArchiving && !oldArchived && <Loader scale={0.3} />}
           {oldArchived && !oldArchiving && (
-            <>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
               <Icon name="check" size={16} />
               &nbsp;
               <p
@@ -374,7 +386,7 @@ function CleanUpBlock() {
               >
                 Completed
               </p>
-            </>
+            </div>
           )}
         </Box>
         <Box
@@ -404,7 +416,13 @@ function CleanUpBlock() {
           )}
           {archiveDeleting && <Loader scale={0.3} />}
           {archiveRecords.length === 0 && !archiveDeleting && (
-            <>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
               <Icon name="check" size={16} />
               <p
                 style={{
@@ -413,7 +431,7 @@ function CleanUpBlock() {
               >
                 Completed (0 Records)
               </p>
-            </>
+            </div>
           )}
 
           {isDialogOpen && (
