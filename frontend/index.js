@@ -22,10 +22,15 @@ function CleanUpBlock() {
   const [duplicatesRemoved, setDuplicatesRemoved] = useState(false);
   const [publishedArchiving, setPublishedArchiving] = useState(false);
   const [publishedArchived, setPublishedArchived] = useState(false);
+  const [oldArchiving, setOldArchiving] = useState(false);
+  const [oldArchived, setOldArchived] = useState(false);
+  const [archiveDeleting, setArchiveDeleting] = useState(false);
+  const [archiveDeleted, setArchiveDeleted] = useState(false);
   const [recordsMoved, setRecordsMoved] = useState(false);
   const [processComplete, setProcessComplete] = useState(false);
   const [storedTitles, setStoredTitles] = useState([]);
   const [storedPublishedRecords, setStoredPublishedRecords] = useState([]);
+  const [storedOldRecords, setStoredOldRecords] = useState([]);
 
   // global variables
 
@@ -33,18 +38,24 @@ function CleanUpBlock() {
   const BATCH_SIZE = 50;
   const editorialTable = base.getTableByName('Editorial');
   const archiveTable = base.getTableByName('Archive');
+  const archiveRecords = useRecords(archiveTable);
   const publishedView = editorialTable.getViewByName('Published Pieces');
+  const oldView = editorialTable.getViewByName('Old Content (pre-2016)');
   const allRecords = useRecords(editorialTable);
   const publishedRecords = useRecords(publishedView);
+  const oldRecords = useRecords(oldView);
 
-  //   store records in state
+  //   store records in state upon page load
 
   useEffect(() => {
     setStoredPublishedRecords(publishedRecords);
+    setStoredOldRecords(oldRecords);
     findCellValues(allRecords);
+    console.log(archiveRecords)
   }, []);
 
-  // find and store duplicate article records in state
+  // find titles, compare records, and store duplicate article records in state
+
   function findCellValues() {
     let titleArray = [];
     for (let i = 0; i < allRecords.length; i++) {
@@ -82,7 +93,7 @@ function CleanUpBlock() {
   async function deleteRecords(records) {
     setDuplicates(null);
     let i = 0;
-    while (i < records.length) {
+    while (i < 50) {
       const recordBatch = records.slice(i, i + BATCH_SIZE);
       await editorialTable.deleteRecordsAsync(recordBatch);
       i += BATCH_SIZE;
@@ -93,20 +104,16 @@ function CleanUpBlock() {
   //   create records in archive
 
   async function createRecords(records) {
-    let i = 0;
-    while (i < records.length) {
-      const recordBatch = records.slice(i, i + BATCH_SIZE);
-      for (let record of recordBatch) {
-        await archiveTable.createRecordsAsync([
-          {
-            fields: {
-              Title: record.getCellValue('Title'),
-              Date: record.getCellValue('Date'),
-            },
+    for (let record of records) {
+      await archiveTable.createRecordsAsync([
+        {
+          fields: {
+            Title: record.getCellValue('Title'),
+            Date: record.getCellValue('Date'),
+            Year: record.getCellValue('Year'),
           },
-        ]);
-        i += BATCH_SIZE;
-      }
+        },
+      ]);
     }
     setRecordsMoved(true);
   }
@@ -114,7 +121,6 @@ function CleanUpBlock() {
   // select and move published pieces to archive
 
   function archivePublished() {
-    setIsDialogOpen(false);
     setPublishedArchiving(true);
     createRecords(storedPublishedRecords);
     if (recordsMoved === true) {
@@ -123,7 +129,32 @@ function CleanUpBlock() {
     if (processComplete === true) {
       setPublishedArchiving(false);
       setPublishedArchived(true);
-      setProcessComplete(false)
+      setProcessComplete(false);
+    }
+  }
+
+  // select and move old pieces to archive
+
+  function archiveOld() {
+    setOldArchiving(true);
+    createRecords(storedOldRecords);
+    if (recordsMoved === true) {
+      deleteRecords(storedOldRecords);
+    }
+    if (processComplete === true) {
+      setOldArchiving(false);
+      setOldArchived(true);
+    }
+  }
+
+  //    delete all records from archive
+
+  function deleteArchive() {
+    setArchiveDeleting(true);
+    deleteRecords(archiveTable);
+    if (processComplete === true) {
+      setArchiveDeleting(false);
+      setArchiveDeleted(true);
     }
   }
 
@@ -297,7 +328,7 @@ function CleanUpBlock() {
             </p>
           </div>
           {!publishedArchived && !publishedArchiving && (
-            <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
+            <Button onClick={() => archivePublished()}>Archive</Button>
           )}
           {publishedArchiving && !publishedArchived && <Loader scale={0.3} />}
           {publishedArchived && !publishedArchiving && (
@@ -312,16 +343,6 @@ function CleanUpBlock() {
                 Completed
               </p>
             </>
-          )}
-          {isDialogOpen && (
-            <ConfirmationDialog
-              title="Are you sure?"
-              body="This action can’t be undone."
-              onConfirm={() => {
-                archivePublished();
-              }}
-              onCancel={() => setIsDialogOpen(false)}
-            />
           )}
         </Box>
         <Box
@@ -342,16 +363,22 @@ function CleanUpBlock() {
               the &quot;Archive&quot; table.
             </p>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
-          {isDialogOpen && (
-            <ConfirmationDialog
-              title="Are you sure?"
-              body="This action can’t be undone."
-              onConfirm={() => {
-                archivePublished();
-              }}
-              onCancel={() => setIsDialogOpen(false)}
-            />
+          {!oldArchived && !oldArchiving && (
+            <Button onClick={() => archiveOld()}>Archive</Button>
+          )}
+          {oldArchiving && !oldArchived && <Loader scale={0.3} />}
+          {oldArchived && !oldArchiving && (
+            <>
+              <Icon name="check" size={16} />
+              &nbsp;
+              <p
+                style={{
+                  color: 'green',
+                }}
+              >
+                Completed
+              </p>
+            </>
           )}
         </Box>
         <Box
@@ -374,13 +401,30 @@ function CleanUpBlock() {
               </span>
             </p>
           </div>
-          <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
+          {!archiveDeleted && !archiveDeleting && (
+            <Button onClick={() => setIsDialogOpen(true)}>Archive</Button>
+          )}
+          {archiveDeleting && !archiveDeleted && <Loader scale={0.3} />}
+          {archiveDeleted && !archiveDeleting && (
+            <>
+              <Icon name="check" size={16} />
+              &nbsp;
+              <p
+                style={{
+                  color: 'green',
+                }}
+              >
+                Completed
+              </p>
+            </>
+          )}
+
           {isDialogOpen && (
             <ConfirmationDialog
               title="Are you sure?"
               body="This action can’t be undone."
               onConfirm={() => {
-                archivePublished();
+                deleteArchive();
               }}
               onCancel={() => setIsDialogOpen(false)}
             />
